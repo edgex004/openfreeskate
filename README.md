@@ -5,15 +5,15 @@ Open source design for 3D printed driftskate/freeskate
 
 ### Design 
 The skates are made up of three top-level modules that you need to print:
- 2 Decks
- 2 Trucks
- 4 Bearing spacers
+* 2 Decks
+* 2 Trucks
+* 4 Bearing spacers
 
 ### Additional parts required for build:
- 4 M4x15mm bolts (or cut down longer M4's)
- 4 M4 nuts
- 4 M8x80mm partially threaded bolts
- 4 M8 locking nuts
+* 4 M4x15mm bolts (or cut down longer M4's)
+* 4 M4 nuts
+* 4 M8x80mm partially threaded bolts
+* 4 M8 locking nuts
 
 ### Note
 The bottom of the M8 bolts can just barely strike the ground when the skates are tipped over. This can be avoided by either cutting the bolts short or by adding M8 washers near the head of the bolt. You can probably also use M8x70mm bolts instead of cutting, but that will leave threading underneath the bearing spacers.
