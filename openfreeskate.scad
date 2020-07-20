@@ -20,7 +20,7 @@
    wheel_hull_shrink_ratio=.8;
    
     bearing_shell_od=22;
-    bearing_shell_id=8.4;
+    bearing_shell_id=8.3;
     bearing_shell_w=8;
     
     deck_w=135;
@@ -330,9 +330,14 @@ module HexMesh(length,width,AF,height,wall)
 	}
 }
 
-    
-    
+
+
+// bearing_adaptor();
+
+// Rotate for optimal print orientation.    
+rotate([0,-90,0])
+{
 // deck();
 truck(true);
-// bearing_adaptor();
+}
 
