@@ -6,10 +6,12 @@
     edge_r=25;
     edge_r_offset=8;
     w=43;
-    bearing_to_bearing=26.5; // Change this if not using JMK Performance wheels.
+    bearing_to_bearing=24.5; // Change this to 26.5 for JMK Performance wheels. Twolions seem to be 24.5.
 
     //non-wheel
-    wall_thickness=8;
+    bolt_head_radius=8;
+    wall_thickness=21;
+    bolt_wall_thickness=8;
     wheel_gap=3;
     whell_shell_width=10;
     added_wheel_distance=20;
@@ -23,23 +25,40 @@
     bearing_shell_id=8.3;
     bearing_shell_w=8;
     
+    deck_bolt_size = "M5"; // M4 vs M5 for now.
+
+    use_m4 = deck_bolt_size == "M4";
+    use_m5 = deck_bolt_size == "M5";
+
+    assert(use_m4 || use_m5);
+
+    deck_bolt_head_bore_h = use_m4 ? 4 : use_m5 ? 5 : 0;
+    deck_bolt_head_bore_r= use_m4 ? 3.5 : use_m5 ? 4.2 : 0; //4.5
+    deck_bolt_total_h= use_m4 ? 19.7 : use_m5 ? 20.8 : 0;
+    deck_bolt_total_r= use_m4 ? 2 : use_m5 ? 2.5 : 0; //3
+    deck_bolt_nut_bore_r= use_m4 ? 4 : use_m5 ? 4.6 : 0; //5.5
+    deck_bolt_nut_bore_h= use_m4 ? 3 : use_m5 ? 3.8 : 0;
+
+    deck_bolt_nut_bore_translation=deck_bolt_head_bore_h+10;
+
+
+    deck_bolt_nut_bore_extra_h=40; //actual h is 3 or 3.8, but this is to go through the whole truck
+
     deck_w=135;
     deck_h=160;
     deck_angle=15;
     deck_edge_r=40;
     deck_thickness_edge=5;
-    deck_thickness=9;
+    deck_thickness=deck_bolt_head_bore_h+5;
 
-    deck_bolt_head_bore_h=4;
-    deck_bolt_head_bore_r=3.5;
-    deck_bolt_total_h=18;
-    deck_bolt_total_r=2;
-    deck_bolt_nut_bore_r=4;
-    deck_bolt_nut_bore_h=3;
+    bolt_distance=42;
+    bolt_distance_from_center=bolt_distance/2; // JMK bolt distance is 63.7/2 based off https://www.thingiverse.com/thing:4152124.
+    // 4 bolt measurements from https://www.thingiverse.com/thing:4152124. bolt distance is 51/2. distance in the horizontal is 78.2 total.
 
-    deck_bolt_nut_bore_extra_h=10; //actual h is 3, but this is to go through the whole truck
-    
-    bolt_distance=21;
+    four_bolt_distance = 51;
+    four_bolt_distance_from_center = four_bolt_distance/2;
+    four_bolt_width = 78.2;
+    four_bolt_width_from_center = four_bolt_width/2;
 
 
     platform_interface_size=[w+2*wall_thickness+2*wheel_gap,od+added_wheel_distance+1.7,deck_thickness];
@@ -50,6 +69,7 @@
     bearing_adaptor_od_big = 22;
     bearing_adaptor_od_small = 13;
     bearing_adaptor_width = (w + 2*wheel_gap -  bearing_to_bearing)/2;
+
 
 module bearing (od = 22, id=8, w=7) {
     
@@ -63,6 +83,13 @@ module bearing_adaptor(){
     difference(){
         cylinder(r1=bearing_adaptor_od_big/2,r2=bearing_adaptor_od_small/2,h=bearing_adaptor_width);
         cylinder(r=bearing_shell_id/2, h=bearing_adaptor_width);
+    }
+}
+
+module bearing_washer(width){
+    difference(){
+        cylinder(r=bearing_adaptor_od_big/2,h=width);
+        cylinder(r=bearing_shell_id/2, h=width);
     }
 }
 
@@ -98,6 +125,17 @@ module wheel(){
 }
 }
 
+module wheels_for_hulling(){
+    translate([0,-(od+wheel_gap*2+added_wheel_distance)/2])
+            translate([0,0,wall_thickness+wheel_gap])
+
+    wheel_shell(od*wheel_hull_shrink_ratio,w,edge_r,edge_r_offset,true);
+            translate([0,(od+wheel_gap*2+added_wheel_distance)/2])
+            translate([0,0,wall_thickness+wheel_gap])
+
+    wheel_shell(od*wheel_hull_shrink_ratio,w,edge_r,edge_r_offset,true);
+}
+
 module tire(){
     
     difference(){
@@ -120,6 +158,8 @@ module well(){
         translate([0,0,wall_thickness])
     wheel_shell(od+wheel_gap*2,w+2*wheel_gap,10,0);
         cylinder(r=bearing_shell_id/2, h=w+2*wheel_gap+2*wall_thickness);
+        cylinder(r=bolt_head_radius, h=wall_thickness-bolt_wall_thickness);
+        translate([0,0,w+2*wheel_gap+2*wall_thickness-(wall_thickness-bolt_wall_thickness)])cylinder(r=bolt_head_radius, h=wall_thickness-bolt_wall_thickness);
 
 }
 
@@ -128,19 +168,19 @@ module well_shell(){
 }
 
 
-module flying_butrous(hole_scale){
+module flying_butrous(hole_scale_z,hole_scale_y=1.3, side_hole_scale=1.5){
     module quarter_flying_butrous(){        
 //        hull(){
 //        translate([(truck_interface_size[0])/2-wall_thickness,0])
 //        cube([wall_thickness,truck_interface_size[1]*0.25,truck_interface_size[2]*0.5],center=false);
-//        translate([0,bolt_distance-5])
-//        cube([truck_interface_size[0]*0.5,truck_interface_size[1]*0.5-bolt_distance+5,truck_interface_size[2]],center=false);
+//        translate([0,bolt_distance_from_center-5])
+//        cube([truck_interface_size[0]*0.5,truck_interface_size[1]*0.5-bolt_distance_from_center+5,truck_interface_size[2]],center=false);
 //        }
         hull(){
         translate([0,0])
         cube([truck_interface_size[0]/2,truck_interface_size[1]*0.25,truck_interface_size[2]*0.5],center=false);
-        translate([0,bolt_distance])
-        cube([truck_interface_size[0]*0.5,truck_interface_size[1]*0.5-bolt_distance,truck_interface_size[2]],center=false);
+        translate([0,bolt_distance_from_center-10])
+        cube([truck_interface_size[0]*0.5,truck_interface_size[1]*0.5-bolt_distance_from_center,truck_interface_size[2]],center=false);
         }
         }
         difference(){
@@ -151,8 +191,8 @@ module flying_butrous(hole_scale){
     mirror([1,0,0])quarter_flying_butrous();
             }
             sides=12;
-            scale([hole_scale,1.3,1])rotate([0,0,180/sides])cylinder(r=bolt_distance-9,h=100,$fn=sides);
-            scale([1,1.5,1])translate([0,0,(truck_interface_size[2]/2+bolt_distance)])rotate([0,90,0])cylinder(r=bolt_distance,h=100,$fn=14,center=true);
+            scale([hole_scale_z,hole_scale_y,1])rotate([0,0,180/sides])cylinder(r=bolt_distance_from_center-9,h=100,$fn=sides);
+            scale([1,side_hole_scale,1])translate([0,0,(truck_interface_size[2]/2+bolt_distance_from_center)])rotate([0,90,0])cylinder(r=bolt_distance_from_center,h=100,$fn=14,center=true);
 
         }
 
@@ -183,13 +223,13 @@ module truck(lightweight = false){
 //    translate([-33,0,truck_interface_size[0]/2])rotate([0,-90,0])
 //        difference(){
 //       cube(truck_interface_size,center=true);
-//       cube([w,(bolt_distance-wall_thickness)*2,20],center=true);
+//       cube([w,(bolt_distance_from_center-wall_thickness)*2,20],center=true);
 //        }
         
                 translate([-40,0,truck_interface_size[0]/2])rotate([0,-90,0])
-        mirror([0,0,1])flying_butrous(2);
+        mirror([0,0,1])flying_butrous(3.4,1.8);
     translate([23,0,truck_interface_size[0]/2])rotate([0,-90,0]){
-        flying_butrous(1.7);
+        flying_butrous(1.7,1.3,0.3);
 //        //this adds a plate on the bottom for grinding
 //        translate(-[truck_interface_size[0]/2,truck_interface_size[1]/2])cube([truck_interface_size[0],truck_interface_size[1],truck_interface_size[2]/2]);
         }
@@ -203,10 +243,38 @@ module truck(lightweight = false){
                 hull_translate = -od/2 -wheel_gap + hull_od/2+truck_interface_thicknes;
                 hull_edge_r = edge_r;
                 hull_edge_offset = edge_r_offset/2;
-                hull(){
-                    translate([hull_translate,-(od+wheel_gap*2+added_wheel_distance)/2,wall_thickness])wheel_shell(hull_od,w+wheel_gap*2,hull_edge_r,hull_edge_offset);
-                    mirror([0,1,0])translate([hull_translate,-(od+wheel_gap*2+added_wheel_distance)/2,wall_thickness])wheel_shell(hull_od,w+wheel_gap*2,hull_edge_r,hull_edge_offset);
-                } 
+                union(){
+                difference(){
+                    hull(){
+                        translate([hull_translate,-(od+wheel_gap*2+added_wheel_distance)/2,wall_thickness])wheel_shell(hull_od,w+wheel_gap*2,hull_edge_r,hull_edge_offset);
+                        mirror([0,1,0])translate([hull_translate,-(od+wheel_gap*2+added_wheel_distance)/2,wall_thickness])wheel_shell(hull_od,w+wheel_gap*2,hull_edge_r,hull_edge_offset);
+                    } 
+                                                   translate([-15,-100,0]) cube([100,200,400]);
+
+                }
+                difference(){
+                    {
+                    intersect_amount=18;
+                        translate([-15,0,wall_thickness+wheel_gap+w/2])
+                        scale([intersect_amount/9.0,1,(w/2+wheel_gap)/(w/2+wheel_gap-intersect_amount)])
+                        intersection(){
+                            translate([0,0,intersect_amount])
+                        rotate([90,0,0]) cylinder(h=200, r=(w/2+wheel_gap),center=true,$fn=40);
+                                                    translate([0,0,-intersect_amount])
+
+                        rotate([90,0,0]) cylinder(h=200, r=(w/2+wheel_gap),center=true,$fn=40);
+
+                            
+
+                        }
+                    }
+                                                   mirror([1,0,0])translate([16,-100,0]) cube([100,200,400]);
+                                                   translate([18,-100,0]) cube([100,200,400]);
+
+
+                }
+                }
+                
             }
 
             translate([0,-(od+wheel_gap*2+added_wheel_distance)/2])well();
@@ -214,21 +282,40 @@ module truck(lightweight = false){
 
             
             deck(false);
-            deckbolts();
+            // deckbolts();
+four_deckbolts();
+run = 40 + bolt_head_radius;
+rise = wall_thickness-bolt_wall_thickness;
+slope = rise/run;
+slope1 = slope/1.6;
+slope2 = 2*slope;
+length = 100;
+anglelength = 20;
+
+
+height_offset=5+deck_bolt_head_bore_h/3;
+shift_to_deck= 40;
+
+translate([0,100])
+rotate([90])
+linear_extrude(height=200)
+
+polygon( points=[[-shift_to_deck+height_offset,0],[length-shift_to_deck,0],[length-shift_to_deck,length*slope1],[anglelength-shift_to_deck,anglelength*slope2]] );
+
+mirror([0,0,1])
+translate([0,100,-(w+2*wheel_gap+2*wall_thickness)])
+rotate([90])
+linear_extrude(height=200)
+
+polygon( points=[[-shift_to_deck+height_offset,0],[length-shift_to_deck,0],[length-shift_to_deck,length*slope1],[anglelength-shift_to_deck,anglelength*slope2]] );
 
     }
     
     hull(){
         deck(false,false,true);
-    translate([0,-(od+wheel_gap*2+added_wheel_distance)/2])
-            translate([0,0,wall_thickness+wheel_gap])
-
-    wheel_shell(od*wheel_hull_shrink_ratio,w,edge_r,edge_r_offset,true);
-            translate([0,(od+wheel_gap*2+added_wheel_distance)/2])
-            translate([0,0,wall_thickness+wheel_gap])
-
-    wheel_shell(od*wheel_hull_shrink_ratio,w,edge_r,edge_r_offset,true);
+        wheels_for_hulling();
     }
+    minimum_necessary_area_for_strength();
 }
     }
     
@@ -260,7 +347,8 @@ difference(){
      }
         
         if(add_bore)
-        deckbolts(true);
+        // deckbolts(true);
+        four_deckbolts(true);
         }
     }
 
@@ -272,72 +360,99 @@ module deckbolt(){
     union(){
     cylinder(r=deck_bolt_total_r,h=deck_bolt_total_h);
     cylinder(r=deck_bolt_head_bore_r,h=deck_bolt_head_bore_h);
-    translate([0,0,deck_bolt_total_h-deck_bolt_nut_bore_h])cylinder(r=deck_bolt_nut_bore_r,h=deck_bolt_nut_bore_h+deck_bolt_nut_bore_extra_h,$fn=6);
+    translate([0,0,deck_bolt_nut_bore_translation])cylinder(r=deck_bolt_nut_bore_r,h=deck_bolt_nut_bore_h+deck_bolt_nut_bore_extra_h,$fn=6);
     }
     }
     
 module deckbolts(add_mirror=false){
-            translate([-od/2-wheel_gap-deck_thickness,bolt_distance,wall_thickness+wheel_gap+w/2])
+            translate([-od/2-wheel_gap-deck_thickness,bolt_distance_from_center,wall_thickness+wheel_gap+w/2])
     deckbolt();
     
-                translate([-od/2-wheel_gap-deck_thickness,-bolt_distance,wall_thickness+wheel_gap+w/2])
+                translate([-od/2-wheel_gap-deck_thickness,-bolt_distance_from_center,wall_thickness+wheel_gap+w/2])
     deckbolt();
     if (add_mirror)
                                     translate([0,0,wall_thickness+wheel_gap+w/2])
                 rotate([deck_angle*2]){
-                                translate([-od/2-wheel_gap-deck_thickness,bolt_distance])
+                                translate([-od/2-wheel_gap-deck_thickness,bolt_distance_from_center])
     deckbolt();
     
-                translate([-od/2-wheel_gap-deck_thickness,-bolt_distance])
+                translate([-od/2-wheel_gap-deck_thickness,-bolt_distance_from_center])
     deckbolt();
                 }
 
     }
     
+module four_deckbolts(add_mirror=false, scaleyz=1){
+    // four_bolt_distance = 51;
+    // four_bolt_distance_from_center = four_bolt_distance/2;
+    // four_bolt_width = 78.2/2;
+    // four_bolt_width_from_center = four_bolt_width/2;
+    module twobolts(){
+            translate([-od/2-wheel_gap-deck_thickness,four_bolt_distance_from_center])
+    scale([1,scaleyz,scaleyz])deckbolt();
     
+                translate([-od/2-wheel_gap-deck_thickness,-four_bolt_distance_from_center])
+    scale([1,scaleyz,scaleyz])deckbolt();
+    // if (add_mirror)
+    //                                 
+    //             rotate([deck_angle*2]){
+    //                             translate([-od/2-wheel_gap-deck_thickness,four_bolt_distance_from_center])
+    // scale([1,scaleyz,scaleyz])deckbolt();
     
-    module Hexagon(AF, height)
-{ 
-  //Hexagon with across flats size
-  boxWidth = AF/1.75;
-  for (r = [-90, -30, 30]) rotate([0,0,r]) cube([boxWidth, AF, height], true);
+    //             translate([-od/2-wheel_gap-deck_thickness,-four_bolt_distance_from_center])
+    // scale([1,scaleyz,scaleyz])deckbolt();
+    //             }
 
+    }
+
+translate([0,0,wall_thickness+wheel_gap+w/2]){
+    translate ([0,0,four_bolt_width_from_center]) twobolts();
+    translate ([0,0,-four_bolt_width_from_center]) twobolts();
+
+    if (add_mirror){
+        rotate([deck_angle*2])
+    {
+            translate ([0,0,four_bolt_width_from_center]) twobolts();
+            translate ([0,0,-four_bolt_width_from_center]) twobolts();
+        }
+    }
 }
 
-module HexCell(AF,height,wall)
-{
-	difference()
-	{
-		Hexagon(AF,height);
-		translate([0,0,-1]){
-		Hexagon(AF-2*wall,height+4);
-		}
-	}
-}
 
-module HexMesh(length,width,AF,height,wall)
-{
-	union(){
-		xStep = AF-wall;
-		yStep = AF-wall-wall;
-		for (x = [1:xStep:length]){
-			for (y = [1:yStep:width]){
-				translate([x+(((y/yStep) % 2)*((AF/2))),y,0]) {
-					HexCell(AF,height,wall);
-				}
-			}
-		}
-	}
+
+
+    }
+    
+module minimum_necessary_area_for_strength(){
+        hull(){
+            difference(){
+                four_deckbolts(false, 4);
+                deck(false,false,true);
+            }
+        wheels_for_hulling();
+    }
 }
 
 
 
 // bearing_adaptor();
+// bearing_washer(1);
 
-// Rotate for optimal print orientation.    
+        // flying_butrous(1.7,hole_scale_y=1.3, side_hole_scale=1.3);
+//// Rotate for optimal print orientation.
+
 rotate([0,-90,0])
 {
 // deck();
 truck(true);
+// four_deckbolts();
 }
+// minimum_necessary_area_for_strength();
+
+// truck(true);
+// four_deckbolts();
+                        // translate([hull_translate,-(od+wheel_gap*2+added_wheel_distance)/2,wall_thickness])wheel_shell(hull_od,w+wheel_gap*2,hull_edge_r,hull_edge_offset);
+                        // mirror([0,1,0])translate([hull_translate,-(od+wheel_gap*2+added_wheel_distance)/2,wall_thickness])wheel_shell(hull_od,w+wheel_gap*2,hull_edge_r,0);
+
+
 
