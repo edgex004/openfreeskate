@@ -1,15 +1,17 @@
 // Lower quality gives faster compile times and a more polygonal shape. Higher qualit adds more smoothly rounded wheel wells.
-qualitySelection = 15;  // [1:100]
+qualitySelection = 20;  // [1:100]
 // Increase or decrease the axle to axle distance between your wheels.
 modifyAxleDistance = 0; // [-20:20]
 buildTarget = "printed_deck"; // [truck, printed_deck, lazer_cut_deck, bearing_adaptor]
 // Trucks/Decks in general are compatible with any brand. Bearing adaptors change size with brand.
 wheelBrand = "JMKPerformance"; // [JMKPerformance, TwoLions]
 deckBoltSize = "M5"; // [M4, M5]
+// Using the "light" option hollows out the interior of the truck. Using this option will use less filament, but only if your printer can print the midsection wihout supports.
+light = true;
 module build(target){
     rotate([0,-90,0]) {
         if (target == "truck") {
-            truck(true);
+            truck(light);
         } else if (target == "printed_deck") {
             deck(true);
         }
