@@ -1,40 +1,115 @@
+// Check this option to rotate the parts for optimal print orientation. Some parts cannot be printed as a signle part.
+rotateForPrint = true;
 // Lower quality gives faster compile times and a more polygonal shape. Higher qualit adds more smoothly rounded wheel wells.
-qualitySelection = 20;  // [1:100]
+qualitySelection = 10;  // [1:100]
 // Increase or decrease the axle to axle distance between your wheels.
 modifyAxleDistance = 0; // [-20:20]
-buildTarget = "printed_deck"; // [truck, printed_deck, lazer_cut_deck, bearing_adaptor]
-// Trucks/Decks in general are compatible with any brand. Bearing adaptors change size with brand.
+// Trucks/Decks in general are compatible with any brand. Bearing adaptors and wheels change size with brand.
 wheelBrand = "JMKPerformance"; // [JMKPerformance, TwoLions]
-deckBoltSize = "M5"; // [M4, M5]
+deckBoltSize = "M5"; // [None, M4, M5]
 // Using the "light" option hollows out the interior of the truck. Using this option will use less filament, but only if your printer can print the midsection wihout supports.
 light = true;
-module build(target){
+// Mirror the parts in the direction of the y axis
+mirrorParts = false;
+// Wheel diameter
+wheelDiameter = 73; // [65:90]
+
+/* [Wheel] */
+showWheel = false;
+wheel_type = "OnePiece"; // [OnePiece, TwoPiece_hub, TwoPiece_tire]
+// Only affects two-piece wheels. Gap between hub and tire (in 1/10 mm).
+tireHubGap = 0; // [-20:20]
+// Only affects two-piece wheels. Hub size (in mm).
+hubDiameter = 40; // [30:60]
+// Only affects two-piece wheels. Depth of the lip that holds the tire on (in 1/10 mm).
+hubLipDepth = 20; // [0:100]
+// Only affects two-piece wheels. Wdth of the lip that holds the tire on (in 1/10 mm).
+hubLipWidth = 20; // [0:100]
+
+/* [Printed Deck] */
+showPrintedDeck = false;
+/* [Laser Cut Deck] */
+showLaserDeck = false;
+/* [Truck] */
+showTruck = false;
+/* [Bearing Adaptor] */
+showBearingAdaptor = false;
+
+module print_build(){
     rotate([0,-90,0]) {
-        if (target == "truck") {
+        if (showTruck)
             truck(light);
-        } else if (target == "printed_deck") {
-            deck(true);
-        }
+        if (showPrintedDeck)
+            deck(make_bolt_cuts);
     }
-    if (target == "bearing_adaptor") {
+    if (showBearingAdaptor)
         bearing_adaptor();
-    } else if (target == "lazer_cut_deck") {
-            lazercutdeck(false);
+    if (showLaserDeck)
+        lazercutdeck(false);
+    if (showWheel){
+        if(wheel_type=="OnePiece")
+            one_piece_wheel();
+        else if (wheel_type=="TwoPiece_hub")
+            wheel_hub();
+        else if (wheel_type=="TwoPiece_tire")
+            wheel_tire();
     }
 }
 
-build(buildTarget);
+module assembled_build(target){
+    if (showTruck)
+        truck(light);
+    if (showPrintedDeck)
+        deck(true);
+    if (showBearingAdaptor)
+        bearing_adaptor();
+    if (showLaserDeck)
+        lazercutdeck(false);
+    if (showWheel)
+        move_to_well_locations() translate([0,0,wheel_gap])
+            if(wheel_type=="OnePiece")
+                one_piece_wheel();
+            else if (wheel_type=="TwoPiece_hub")
+                wheel_hub();
+            else if (wheel_type=="TwoPiece_tire")
+                wheel_tire();
+}
+
+function btoi(input) = input ? 1 : 0;
+multipe_parts = (btoi(showPrintedDeck) + btoi(showLaserDeck) + btoi(showTruck) + btoi(showWheel) + btoi(showBearingAdaptor)) > 1;
+deck_and_truck_only = !(showLaserDeck || showWheel || showBearingAdaptor);
+can_print = !rotateForPrint || ( deck_and_truck_only || !multipe_parts);
+
+assert(can_print, "Only the truck + deck may be printed together as a single part.");
+ 
+if (rotateForPrint)
+    if (mirrorParts)
+        mirror([0,1,0])
+            print_build();
+    else
+        print_build();
+
+else
+    if (mirrorParts)
+        mirror([0,1,0])
+            assembled_build();
+    else
+        assembled_build();
  
  
  $quality = qualitySelection/100; // Quality scale 0 to 1. 1 Takes a lot of CPU/RAM to render for now.
  $fn = round(100*$quality);
     //wheel info here
-    od=73;
+    od=wheelDiameter;
     id=20;
     edge_r=25;
     edge_r_offset=8;
     w=43;
     bearing_to_bearing = ( wheelBrand == "JMKPerformance" ) ? 26.5 : 24.5; // Change this to 26.5 for JMK Performance wheels. Twolions seem to be 24.5.
+    tireHubGap_mm = tireHubGap / 10.0;
+    hubLipDepth_mm = hubLipDepth / 10.0;
+    hubLipWidth_mm = hubLipWidth / 10.0;
+    wheel_overhang = (w-bearing_to_bearing)/2;
 
     //non-wheel
     bolt_head_radius=8;
@@ -57,15 +132,16 @@ build(buildTarget);
 
     use_m4 = deck_bolt_size == "M4";
     use_m5 = deck_bolt_size == "M5";
+    make_bolt_cuts = use_m4 || use_m5;
 
-    assert(use_m4 || use_m5);
+    // assert(use_m4 || use_m5);
 
-    deck_bolt_head_bore_h = use_m4 ? 4 : use_m5 ? 5 : 0;
-    deck_bolt_head_bore_r= use_m4 ? 3.5 : use_m5 ? 4.3 : 0; //4.5
-    deck_bolt_total_h= use_m4 ? 19.7 : use_m5 ? 20.8 : 0;
-    deck_bolt_total_r= use_m4 ? 2 : use_m5 ? 2.5 : 0; //3
-    deck_bolt_nut_bore_r= use_m4 ? 4 : use_m5 ? 4.6 : 0; //5.5
-    deck_bolt_nut_bore_h= use_m4 ? 3 : use_m5 ? 3.8 : 0;
+    deck_bolt_head_bore_h = use_m4 ? 4 : use_m5 ? 5 : 5;
+    deck_bolt_head_bore_r= use_m4 ? 3.5 : use_m5 ? 4.3 : 4.3;
+    deck_bolt_total_h= use_m4 ? 19.7 : use_m5 ? 20.8 : 20.8;
+    deck_bolt_total_r= use_m4 ? 2 : use_m5 ? 2.5 : 2.5;
+    deck_bolt_nut_bore_r= use_m4 ? 4 : use_m5 ? 4.6 : 4.6;
+    deck_bolt_nut_bore_h= use_m4 ? 3 : use_m5 ? 3.8 : 3.8;
 
     deck_bolt_nut_bore_translation=deck_bolt_head_bore_h+10;
 
@@ -103,6 +179,16 @@ module bearing_mock (od = 22, id=8, w=7) {
     difference(){
         cylinder(r=od/2, h=w);
         cylinder(r=id/2, h=w);
+    }
+}
+
+module bearing_bore (bigod, overhang, od = 22, id=8, w=7) {
+    echo(bigod);
+    echo(od);
+    union(){
+    cylinder(r1=bigod/2, r2=od/2, h=overhang);
+    translate([0,0,overhang])
+        cylinder(r=od/2, h=w);
     }
 }
 
@@ -151,13 +237,67 @@ module wheel_shell(od,w,edge_r,edge_r_offset,low_poly=false){
     }
 }
 
-module wheel(){
+ module bore_for_axle_and_bearings(){
+     bearing_bore (bigod = (od + bearing_shell_od )/2, overhang=wheel_overhang, od = bearing_shell_od, id=bearing_shell_id, w=bearing_shell_w) ;
+        translate ([0,0,w]) mirror([0,0,1])
+            bearing_bore (bigod = (od + bearing_shell_od )/2 , overhang=wheel_overhang, od = bearing_shell_od, id=bearing_shell_id, w=bearing_shell_w) ;
+        cylinder(r=id/2, h=w);
+ }
+
+module wheel_hub(subtractive_shell = false) {
+    difference(){
+        translate([0,0,wheel_overhang])
+        intersection(){
+            translate([0,0,(subtractive_shell ? -1:0)])
+            cylinder(r=hubDiameter/2 + (subtractive_shell ? tireHubGap_mm : 0), h=bearing_to_bearing + (subtractive_shell ? 2: 0));
+            union(){
+            translate([0,0,(subtractive_shell ? -1:0)])
+            cylinder(r=hubDiameter/2 - hubLipDepth_mm + (subtractive_shell ? tireHubGap_mm : 0), h=bearing_to_bearing+ (subtractive_shell ? 2: 0));
+            translate([0,0,hubLipWidth_mm+(subtractive_shell ? tireHubGap_mm:0)])
+                cylinder(r=hubDiameter/2 + (subtractive_shell ? tireHubGap_mm : 0), h=bearing_to_bearing-2*hubLipWidth_mm-(subtractive_shell ? 2*tireHubGap_mm:0));
+
+            }
+        }
+        if(!subtractive_shell) bore_for_axle_and_bearings();
+    }
+}
+
+module space_for_wheel_hub() {
+        intersection(){
+            translate([0,0, -1])
+            cylinder(r=hubDiameter/2 +  tireHubGap_mm , h=w + 2);
+            union(){
+            translate([0,0,-1])
+            cylinder(r=hubDiameter/2 - hubLipDepth_mm +  tireHubGap_mm , h=w+  2);
+            translate([0,0,wheel_overhang])
+            translate([0,0,hubLipWidth_mm+ tireHubGap_mm])
+                cylinder(r=hubDiameter/2 + tireHubGap_mm , h=bearing_to_bearing-2*hubLipWidth_mm-2*tireHubGap_mm);
+
+            }
+        }
+    
+}
+
+
+module wheel_tire() {
     difference(){
         wheel_shell(od,w,edge_r,edge_r_offset);
-        bearing_mock (od = bearing_shell_od, id=bearing_shell_id, w=bearing_shell_w) ;
-        translate ([0,0,w-bearing_shell_w])
-            bearing_mock (od = bearing_shell_od, id=bearing_shell_id, w=bearing_shell_w) ;
-        cylinder(r=id/2, h=w);
+        space_for_wheel_hub();
+    }
+}
+
+module move_to_well_locations(){
+            translate([0,-(od+wheel_gap*2+added_wheel_distance)/2,wall_thickness])
+                children();
+            mirror([0,1,0])
+            translate([0,-(od+wheel_gap*2+added_wheel_distance)/2,wall_thickness])
+                children();
+};
+
+module one_piece_wheel(){
+    difference(){
+        wheel_shell(od,w,edge_r,edge_r_offset);
+        bore_for_axle_and_bearings();
     }
 }
 
@@ -188,11 +328,13 @@ module truck_half() {
 }
 
 module well(){
-        translate([0,0,wall_thickness])
-            wheel_shell(od+wheel_gap*2,w+2*wheel_gap,10,0);
+        
+        wheel_shell(od+wheel_gap*2,w+2*wheel_gap,10,0);
+        translate([0,0,-wall_thickness])
         cylinder(r=bearing_shell_id/2, h=w+2*wheel_gap+2*wall_thickness);
+        translate([0,0,-wall_thickness])
         cylinder(r=bolt_head_radius, h=wall_thickness-bolt_wall_thickness);
-        translate([0,0,w+2*wheel_gap+2*wall_thickness-(wall_thickness-bolt_wall_thickness)])
+        translate([0,0,w+2*wheel_gap+wall_thickness-(wall_thickness-bolt_wall_thickness)])
             cylinder(r=bolt_head_radius, h=wall_thickness-bolt_wall_thickness);
 }
 
@@ -320,15 +462,13 @@ module truck(lightweight = true){
                 }
             }
 
-            translate([0,-(od+wheel_gap*2+added_wheel_distance)/2])
-                well();
-            mirror([0,1,0])
-            translate([0,-(od+wheel_gap*2+added_wheel_distance)/2])
+
+            move_to_well_locations()
                 well();
 
-            
             deck(false);
-            four_deckbolts();
+            if(make_bolt_cuts)
+                four_deckbolts();
             run = 40 + bolt_head_radius;
             rise = wall_thickness-bolt_wall_thickness;
             slope = rise/run;
