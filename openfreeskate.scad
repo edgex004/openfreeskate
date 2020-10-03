@@ -18,13 +18,19 @@ wheelDiameter = 73; // [65:90]
 showWheel = false;
 wheel_type = "OnePiece"; // [OnePiece, TwoPiece_hub, TwoPiece_tire]
 // Only affects two-piece wheels. Gap between hub and tire (in 1/10 mm).
-tireHubGap = 0; // [-20:20]
+tireHubGap = 0; // [0:20]
 // Only affects two-piece wheels. Hub size (in mm).
 hubDiameter = 40; // [30:60]
 // Only affects two-piece wheels. Depth of the lip that holds the tire on (in 1/10 mm).
-hubLipDepth = 20; // [0:100]
+hubLipDepth = 30; // [0:100]
 // Only affects two-piece wheels. Wdth of the lip that holds the tire on (in 1/10 mm).
-hubLipWidth = 20; // [0:100]
+hubLipBase = 70; // [0:200]
+// Only affects two-piece wheels. Wdth of the lip that holds the tire on (in 1/10 mm).
+hubLipTip = 30; // [0:200]
+// Only affects two-piece wheels. Wdth of the lip that holds the tire on (in 1/10 mm).
+numHubLips = 2; // [0:4]
+// Controls how much extra space there is between the hub lips and the edge of the hub.
+hubEdgePercent = 150; // [0:200]
 
 /* [Printed Deck] */
 showPrintedDeck = false;
@@ -108,7 +114,10 @@ else
     bearing_to_bearing = ( wheelBrand == "JMKPerformance" ) ? 26.5 : 24.5; // Change this to 26.5 for JMK Performance wheels. Twolions seem to be 24.5.
     tireHubGap_mm = tireHubGap / 10.0;
     hubLipDepth_mm = hubLipDepth / 10.0;
-    hubLipWidth_mm = hubLipWidth / 10.0;
+    // hubLipWidth_mm = hubLipWidth / 10.0;
+    hubLipBase_mm = hubLipBase / 10.0;
+    hubLipTip_mm = hubLipTip / 10.0;
+    hubEdgeRatio = hubEdgePercent /100.0;
     wheel_overhang = (w-bearing_to_bearing)/2;
 
     //non-wheel
@@ -244,40 +253,46 @@ module wheel_shell(od,w,edge_r,edge_r_offset,low_poly=false){
         cylinder(r=id/2, h=w);
  }
 
-module wheel_hub(subtractive_shell = false) {
+
+
+module wheel_hub(add_bore = true, extra_gap = 0.0) {
     difference(){
         translate([0,0,wheel_overhang])
-        intersection(){
-            translate([0,0,(subtractive_shell ? -1:0)])
-            cylinder(r=hubDiameter/2 + (subtractive_shell ? tireHubGap_mm : 0), h=bearing_to_bearing + (subtractive_shell ? 2: 0));
-            union(){
-            translate([0,0,(subtractive_shell ? -1:0)])
-            cylinder(r=hubDiameter/2 - hubLipDepth_mm + (subtractive_shell ? tireHubGap_mm : 0), h=bearing_to_bearing+ (subtractive_shell ? 2: 0));
-            translate([0,0,hubLipWidth_mm+(subtractive_shell ? tireHubGap_mm:0)])
-                cylinder(r=hubDiameter/2 + (subtractive_shell ? tireHubGap_mm : 0), h=bearing_to_bearing-2*hubLipWidth_mm-(subtractive_shell ? 2*tireHubGap_mm:0));
+        union(){
+            translate([0,0, -extra_gap])
+            cylinder(r=(hubDiameter+extra_gap)/2, h=bearing_to_bearing + extra_gap);
+                                poly_shift = (hubLipBase_mm-hubLipTip_mm)/2;
+            if (numHubLips > 1){
+                for ( i = [1 : numHubLips] ) {
+                    max_edge_lip = bearing_to_bearing/(numHubLips + 1)-hubLipBase_mm/2;
+                    tip_to_tip = (bearing_to_bearing-hubLipBase_mm-max_edge_lip*hubEdgeRatio)/(numHubLips-1);
+                    min_tip_to_tip = (bearing_to_bearing-hubLipBase_mm)/(numHubLips+1);
+                    translate([0,0,tip_to_tip*(i-1)+hubEdgeRatio*(max_edge_lip)/2])
 
+                    // translate([0,0,(i-1)*(2*(1-hubEdgeRatio)*(hubLipBase_mm+extra_gap)+(bearing_to_bearing)/(numHubLips+1))+hubEdgeRatio*(hubLipBase_mm)])
+                    rotate_extrude()
+                    translate([hubDiameter/2, 0, 0])
+                    polygon(points=[[0,-extra_gap], [0,hubLipBase_mm+extra_gap], [hubLipDepth_mm+extra_gap,poly_shift+hubLipTip_mm+extra_gap], [hubLipDepth_mm+extra_gap,poly_shift-extra_gap]]);
+                }
+        
+            } else {
+                    translate([0,0,(bearing_to_bearing-hubLipBase_mm)/2])
+                    rotate_extrude()
+                    translate([hubDiameter/2, 0, 0])
+                    polygon(points=[[0,-extra_gap], [0,hubLipBase_mm+extra_gap], [hubLipDepth_mm+extra_gap,poly_shift+hubLipTip_mm+extra_gap], [hubLipDepth_mm+extra_gap,poly_shift-extra_gap]]);
             }
         }
-        if(!subtractive_shell) bore_for_axle_and_bearings();
+        if(add_bore) bore_for_axle_and_bearings();
     }
 }
 
 module space_for_wheel_hub() {
-        intersection(){
-            translate([0,0, -1])
-            cylinder(r=hubDiameter/2 +  tireHubGap_mm , h=w + 2);
-            union(){
-            translate([0,0,-1])
-            cylinder(r=hubDiameter/2 - hubLipDepth_mm +  tireHubGap_mm , h=w+  2);
-            translate([0,0,wheel_overhang])
-            translate([0,0,hubLipWidth_mm+ tireHubGap_mm])
-                cylinder(r=hubDiameter/2 + tireHubGap_mm , h=bearing_to_bearing-2*hubLipWidth_mm-2*tireHubGap_mm);
-
-            }
+        union(){
+            translate([0,0,-.1])
+                cylinder(r=(hubDiameter+tireHubGap_mm)/2, h= w + 2*.1);
+            wheel_hub(false, tireHubGap_mm);
         }
-    
 }
-
 
 module wheel_tire() {
     difference(){
