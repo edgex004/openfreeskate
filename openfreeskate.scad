@@ -269,17 +269,16 @@ module wheel_hub(add_bore = true, extra_gap = 0.0) {
                     min_tip_to_tip = (bearing_to_bearing-hubLipBase_mm)/(numHubLips+1);
                     translate([0,0,tip_to_tip*(i-1)+hubEdgeRatio*(max_edge_lip)/2])
 
-                    // translate([0,0,(i-1)*(2*(1-hubEdgeRatio)*(hubLipBase_mm+extra_gap)+(bearing_to_bearing)/(numHubLips+1))+hubEdgeRatio*(hubLipBase_mm)])
                     rotate_extrude()
                     translate([hubDiameter/2, 0, 0])
-                    polygon(points=[[0,-extra_gap], [0,hubLipBase_mm+extra_gap], [hubLipDepth_mm+extra_gap,poly_shift+hubLipTip_mm+extra_gap], [hubLipDepth_mm+extra_gap,poly_shift-extra_gap]]);
+                    polygon(points=[[-.1,-extra_gap], [-.1,hubLipBase_mm+extra_gap], [hubLipDepth_mm+extra_gap,poly_shift+hubLipTip_mm+extra_gap], [hubLipDepth_mm+extra_gap,poly_shift-extra_gap]]);
                 }
         
             } else {
                     translate([0,0,(bearing_to_bearing-hubLipBase_mm)/2])
                     rotate_extrude()
                     translate([hubDiameter/2, 0, 0])
-                    polygon(points=[[0,-extra_gap], [0,hubLipBase_mm+extra_gap], [hubLipDepth_mm+extra_gap,poly_shift+hubLipTip_mm+extra_gap], [hubLipDepth_mm+extra_gap,poly_shift-extra_gap]]);
+                    polygon(points=[[-.1,-extra_gap], [-.1,hubLipBase_mm+extra_gap], [hubLipDepth_mm+extra_gap,poly_shift+hubLipTip_mm+extra_gap], [hubLipDepth_mm+extra_gap,poly_shift-extra_gap]]);
             }
         }
         if(add_bore) bore_for_axle_and_bearings();
