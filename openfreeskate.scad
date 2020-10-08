@@ -2,8 +2,6 @@
 rotateForPrint = true;
 // Lower quality gives faster compile times and a more polygonal shape. Higher qualit adds more smoothly rounded wheel wells.
 qualitySelection = 10;  // [1:100]
-// Increase or decrease the axle to axle distance between your wheels.
-modifyAxleDistance = 0; // [-20:20]
 // Trucks/Decks in general are compatible with any brand. Bearing adaptors and wheels change size with brand.
 wheelBrand = "JMKPerformance"; // [JMKPerformance, TwoLions]
 deckBoltSize = "M5"; // [None, M4, M5]
@@ -11,8 +9,10 @@ deckBoltSize = "M5"; // [None, M4, M5]
 light = true;
 // Mirror the parts in the direction of the y axis
 mirrorParts = false;
-// Wheel diameter
-wheelDiameter = 73; // [65:90]
+// Wheel diameter affects both the trucks and the wheels. If you bump your wheel diameter up to the max, the trucks will adjust to fit the wheels.
+Wheel_Diameter = 73; // [65:90]
+// Increase or decrease the axle to axle distance of the truck. With the default settings, the total distance comes to about 99mm (compare to 103mm on JMK). Axle to axle distance is calculated as : Wheel_Diameter + Added_Axle_Distance + Gap (so wheels never hit each other even with Added_Axle_Distance of 0)
+Added_Axle_Distance = 20; // [0:40]
 
 /* [Wheel] */
 showWheel = false;
@@ -32,10 +32,17 @@ numHubLips = 2; // [0:4]
 // Controls how much extra space there is between the hub lips and the edge of the hub.
 hubEdgePercent = 150; // [0:200]
 
-/* [Printed Deck] */
+/* [Deck] */
 showPrintedDeck = false;
-/* [Laser Cut Deck] */
 showLaserDeck = false;
+// Laser cut deck only. Widens the holes in order to cut a counterbore for bolt heads.
+Counter_Bore=false;
+Deck_Width=135; // [50:200]
+Deck_Height=160; // [50:200]
+Toe_Heel_Edge_Radius=40; // [1:100]
+Sides_Edge_Radius=40; // [1:100]
+Added_Arch_Bump_Width=0; // [-20:20]
+Added_Arch_Bump_Height=0; // [-20:20]
 /* [Truck] */
 showTruck = false;
 /* [Bearing Adaptor] */
@@ -51,7 +58,7 @@ module print_build(){
     if (showBearingAdaptor)
         bearing_adaptor();
     if (showLaserDeck)
-        lazercutdeck(false);
+        lazercutdeck(Counter_Bore);
     if (showWheel){
         if(wheel_type=="OnePiece")
             one_piece_wheel();
@@ -87,7 +94,13 @@ deck_and_truck_only = !(showLaserDeck || showWheel || showBearingAdaptor);
 can_print = !rotateForPrint || ( deck_and_truck_only || !multipe_parts);
 
 assert(can_print, "Only the truck + deck may be printed together as a single part.");
- 
+
+if (showPrintedDeck||showLaserDeck) {
+    assert((Toe_Heel_Edge_Radius < Deck_Width / 2), "Toe Edge radius for deck must be less than half the width.");
+    assert((Sides_Edge_Radius < Deck_Height / 2), "Side Edge radius for deck must be less than half the height.");
+}
+
+
 if (rotateForPrint)
     if (mirrorParts)
         mirror([0,1,0])
@@ -106,7 +119,7 @@ else
  $quality = qualitySelection/100; // Quality scale 0 to 1. 1 Takes a lot of CPU/RAM to render for now.
  $fn = round(100*$quality);
     //wheel info here
-    od=wheelDiameter;
+    od=Wheel_Diameter;
     id=20;
     edge_r=25;
     edge_r_offset=8;
@@ -126,7 +139,7 @@ else
     bolt_wall_thickness=8;
     wheel_gap=3;
     whell_shell_width=10;
-    added_wheel_distance=20+modifyAxleDistance;
+    added_wheel_distance=Added_Axle_Distance;
     wheel_coverage_ratio=.9;
     wheel_coverage_offset=(od/pow(wheel_coverage_ratio,1.55))/8;
     truck_height=wheel_coverage_ratio*od;
@@ -157,10 +170,9 @@ else
 
     deck_bolt_nut_bore_extra_h=40; //actual h is 3 or 3.8, but this is to go through the whole truck
 
-    deck_w=135;
-    deck_h=160;
     deck_angle=15;
-    deck_edge_r=40;
+    deck_edge_r_x=Sides_Edge_Radius;
+    deck_edge_r_y=Toe_Heel_Edge_Radius;
     deck_thickness_edge=5;
     deck_thickness=deck_bolt_head_bore_h+5;
 
@@ -515,22 +527,30 @@ module truck(lightweight = true){
     }
 }
     
-    
+module oval(w,h, height, center = false) {
+ scale([1, h/w, 1]) cylinder(h=height, r=w, center=center);
+}
+
 module unmirrored_deck(shrunk = false){
-    trans_x=deck_h/2-deck_edge_r;
-    trans_y=shrunk ? deck_w/3-deck_edge_r : deck_w/2-deck_edge_r;
+    trans_x=Deck_Height/2-deck_edge_r_x;
+    trans_y=shrunk ? Deck_Width/3-deck_edge_r_y : Deck_Width/2-deck_edge_r_y;
     hull(){
         translate([0,0,deck_thickness/2])
         rotate([0,0,deck_angle])
             cube(platform_interface_size,center=true);
         translate([trans_x,trans_y])
-            cylinder(r=deck_edge_r,h=deck_thickness_edge);
+            oval(w=deck_edge_r_x,h=deck_edge_r_y,height=deck_thickness_edge);
         translate([-trans_x,trans_y])
-            cylinder(r=deck_edge_r,h=deck_thickness_edge);
+            oval(w=deck_edge_r_x,h=deck_edge_r_y,height=deck_thickness_edge);
         translate([-trans_x,-trans_y])
-            cylinder(r=deck_edge_r,h=deck_thickness_edge);
+            oval(w=deck_edge_r_x,h=deck_edge_r_y,height=deck_thickness_edge);
         translate([trans_x,-trans_y])
-            cylinder(r=deck_edge_r,h=deck_thickness_edge);
+            oval(w=deck_edge_r_x,h=deck_edge_r_y,height=deck_thickness_edge);
+        intersection(){
+            oval(w=(Deck_Height+Added_Arch_Bump_Height)/2,h=(Deck_Width+Added_Arch_Bump_Width)/2,height=deck_thickness_edge);
+            translate([0,0,deck_thickness_edge/2])
+                cube([Deck_Width+Added_Arch_Bump_Width,Deck_Height,deck_thickness_edge], center=true);
+        }
         }
     }
         
