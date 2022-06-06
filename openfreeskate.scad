@@ -181,8 +181,9 @@ $fs = 1 / $quality;
 
     //non-wheel
     bolt_head_radius=8;
-    wall_thickness=11;
+    wall_thickness=14;
     bolt_wall_thickness=8;
+    wall_slope_height=30;
     wheel_gap=3;
     whell_shell_width=10;
     added_wheel_distance=Added_Axle_Distance;
@@ -585,7 +586,7 @@ module simpler_lightweight_truck(){
     }
     module tapered_walls() {
         render(convexity=10){
-            run = 40 + bolt_head_radius;
+            run = wall_slope_height + bolt_head_radius;
             rise = wall_thickness-bolt_wall_thickness;
             slope = rise/run;
             slope1 = slope/1.6;
