@@ -181,7 +181,7 @@ $fs = 1 / $quality;
 
     //non-wheel
     bolt_head_radius=8;
-    wall_thickness=14;
+    wall_thickness=16;
     bolt_wall_thickness=8;
     wall_slope_height=30;
     wheel_gap=3;
